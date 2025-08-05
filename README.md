@@ -1,3 +1,4 @@
+
 # Customer Onboarding Ui
 
 
@@ -91,3 +92,181 @@ For open source projects, say how it is licensed.
 
 ## Project status
 If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+=======
+# Customer Onboarding Frontend
+
+A React-based frontend application for the Customer Onboarding system based on the BPMN workflow process.
+
+## Features
+
+### Customer Interface
+- **Step-by-step Onboarding Process**: Guided workflow with progress tracking
+- **Personal Information Form**: Collect customer details with validation
+- **Document Upload**: Drag-and-drop file upload with support for PDF, JPG, PNG
+- **Real-time Status Updates**: Track onboarding progress with visual indicators
+- **Process Tracking**: View current step and completion status
+
+### Admin Dashboard
+- **Process Management**: View and manage all onboarding processes
+- **Task Management**: Assign, start, and complete verification tasks
+- **Document Review**: Approve or reject uploaded documents
+- **Statistics Overview**: Real-time metrics and process analytics
+- **Filtering & Search**: Filter processes by status and other criteria
+
+### Process Tracker
+- **Detailed Process View**: Complete overview of individual onboarding processes
+- **Task Timeline**: Visual timeline of all process events
+- **Document Management**: View and manage uploaded documents
+- **Task Assignment**: Assign tasks to different agents
+- **SLA Monitoring**: Track process completion times
+
+## BPMN Workflow Implementation
+
+The application implements the following BPMN process flow:
+
+1. **Start Event** → Customer initiates onboarding
+2. **Initial Triage** → AI agent performs preliminary assessment
+3. **Decision Gateway** → Route based on risk assessment
+   - **Low Risk** → Direct to Account Setup
+   - **High Risk** → Additional Verification Process
+4. **Verification Tasks** (Ad-hoc subprocess):
+   - Document Validation
+   - KYC Check
+   - Manual Review
+   - Risk Assessment
+   - Additional Document Requirements
+5. **Account Setup** → Create customer account
+6. **Welcome Notification** → Send credentials via email/SMS
+7. **End Event** → Process completion
+
+### SLA Management
+- 24-hour completion target
+- Automatic process restart if SLA exceeded
+- Real-time monitoring and alerts
+
+## Technology Stack
+
+- **Frontend**: React 18 with Hooks
+- **Routing**: React Router DOM
+- **Styling**: Custom CSS with responsive design
+- **State Management**: React useState and useEffect
+- **HTTP Client**: Axios (ready for API integration)
+
+## Getting Started
+
+### Prerequisites
+- Node.js (v14 or higher)
+- npm or yarn
+
+### Installation
+
+1. Clone the repository:
+```bash
+git clone <repository-url>
+cd customer-onboarding-frontend
+```
+
+2. Install dependencies:
+```bash
+npm install
+```
+
+3. Start the development server:
+```bash
+npm start
+```
+
+4. Open your browser and navigate to `http://localhost:3000`
+
+### Available Scripts
+
+- `npm start` - Runs the app in development mode
+- `npm build` - Builds the app for production
+- `npm test` - Launches the test runner
+- `npm eject` - Ejects from Create React App (one-way operation)
+
+## Project Structure
+
+```
+src/
+├── components/
+│   ├── Header/
+│   │   ├── Header.js
+│   │   └── Header.css
+│   ├── CustomerOnboarding/
+│   │   ├── CustomerOnboarding.js
+│   │   └── CustomerOnboarding.css
+│   ├── AdminDashboard/
+│   │   ├── AdminDashboard.js
+│   │   └── AdminDashboard.css
+│   └── ProcessTracker/
+│       ├── ProcessTracker.js
+│       └── ProcessTracker.css
+├── App.js
+├── App.css
+├── index.js
+└── index.css
+```
+
+## Key Components
+
+### CustomerOnboarding
+- Multi-step form with progress tracking
+- File upload with drag-and-drop support
+- Real-time validation and feedback
+- Integration with BPMN workflow steps
+
+### AdminDashboard
+- Process overview with statistics
+- Filterable process list
+- Quick actions for process management
+- Real-time status updates
+
+### ProcessTracker
+- Detailed process view with tabs
+- Task management interface
+- Document review capabilities
+- Timeline visualization
+
+## API Integration
+
+The application is designed to work with a backend API. Mock data is currently used for demonstration. To integrate with a real API:
+
+1. Update the API endpoints in each component
+2. Replace mock data with actual API calls
+3. Implement proper error handling
+4. Add authentication if required
+
+## Customization
+
+### Styling
+- All styles are in separate CSS files
+- CSS custom properties for easy theming
+- Responsive design with mobile-first approach
+- Consistent design system with reusable classes
+
+### Workflow Configuration
+- Easy to modify BPMN workflow steps
+- Configurable task types and statuses
+- Flexible document requirements
+- Customizable SLA settings
+
+## Browser Support
+
+- Chrome (latest)
+- Firefox (latest)
+- Safari (latest)
+- Edge (latest)
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests if applicable
+5. Submit a pull request
+
+## License
+
+This project is licensed under the MIT License.
+
