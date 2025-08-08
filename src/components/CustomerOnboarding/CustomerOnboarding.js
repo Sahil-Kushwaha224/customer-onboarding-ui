@@ -13,7 +13,7 @@ const CustomerOnboarding = () => {
       mobile: "",
       email: "",
       pep: false,
-      income_band: "",
+      income_band: "Not provided",
       occupation: "",
     },
     address: {
@@ -41,6 +41,7 @@ const CustomerOnboarding = () => {
   const [loading, setLoading] = useState(false);
   const [ocrProcessing, setOcrProcessing] = useState(false);
   const [alerts, setAlerts] = useState([]);
+  const [processingTimer, setProcessingTimer] = useState(0);
 
   // Step 1: Document Upload + Basic Info + Address, Step 2: Contact & Product Info (with Submit)
   const steps = [
@@ -51,6 +52,23 @@ const CustomerOnboarding = () => {
   useEffect(() => {
     setProcessId(`PROC-${Date.now()}`);
   }, []);
+
+  // Timer effect for OCR processing
+  useEffect(() => {
+    let interval;
+    if (ocrProcessing) {
+      setProcessingTimer(0);
+      interval = setInterval(() => {
+        setProcessingTimer(prev => prev + 1);
+      }, 1000);
+    } else {
+      setProcessingTimer(0);
+    }
+    
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [ocrProcessing]);
 
 
 
@@ -67,6 +85,13 @@ const CustomerOnboarding = () => {
     setTimeout(() => {
       setAlerts((prev) => prev.filter((a) => a.id !== alert.id));
     }, 5000);
+  };
+
+  // Format timer display
+  const formatTimer = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
   const handleInputChange = (section, field, value) => {
@@ -932,7 +957,7 @@ const CustomerOnboarding = () => {
                     mobile: "",
                     email: "",
                     pep: false,
-                    income_band: "",
+                    income_band: "Not provided",
                     occupation: "",
                   },
                   address: {
@@ -1056,81 +1081,90 @@ const CustomerOnboarding = () => {
 
             {/* OCR Processing Indicator */}
             {ocrProcessing && (
-              <div className="ocr-processing">
-                <div className="processing-indicator">
-                  <div className="spinner"></div>
-                  <span>Extracting information from document...</span>
-                </div>
+              <div className="ocr-processing-simple">
+                <span className="simple-spinner">⏳</span>
+                <span>Processing document... {formatTimer(processingTimer)}</span>
               </div>
             )}
 
             {/* Document-related fields */}
             <h4>Document Information</h4>
             <div className="grid grid-2">
-              <input
-                type="text"
-                placeholder="Full Name *"
-                value={formData.customer.fullName}
-                onChange={(e) =>
-                  handleInputChange("customer", "fullName", e.target.value)
-                }
-                disabled={ocrProcessing}
-              />
-              <input
-                type="date"
-                placeholder="Date of Birth *"
-                value={formData.customer.dob}
-                onChange={(e) =>
-                  handleInputChange("customer", "dob", e.target.value)
-                }
-                disabled={ocrProcessing}
-              />
+              <div className="input-group">
+                <label className="input-label">Full Name *</label>
+                <input
+                  type="text"
+                  value={formData.customer.fullName}
+                  onChange={(e) =>
+                    handleInputChange("customer", "fullName", e.target.value)
+                  }
+                  disabled={ocrProcessing}
+                />
+              </div>
+              <div className="input-group">
+                <label className="input-label">Date of Birth *</label>
+                <input
+                  type="date"
+                  value={formData.customer.dob}
+                  onChange={(e) =>
+                    handleInputChange("customer", "dob", e.target.value)
+                  }
+                  disabled={ocrProcessing}
+                />
+              </div>
             </div>
             <div className="grid equal-cols">
-              <textarea
-                placeholder="Complete Address *"
-                value={formData.address.line1}
-                onChange={(e) =>
-                  handleInputChange("address", "line1", e.target.value)
-                }
-                rows="3"
-                disabled={ocrProcessing}
-                style={{
-                  width: "100%",
-                  resize: "vertical",
-                  fontFamily: "inherit",
-                  fontSize: "inherit",
-                  padding: "8px 12px",
-                  border: "1px solid #ddd",
-                  borderRadius: "4px",
-                }}
-              />
+              <div className="input-group">
+                <label className="input-label">Complete Address *</label>
+                <textarea
+                  value={formData.address.line1}
+                  onChange={(e) =>
+                    handleInputChange("address", "line1", e.target.value)
+                  }
+                  rows="3"
+                  disabled={ocrProcessing}
+                  style={{
+                    width: "100%",
+                    resize: "vertical",
+                    fontFamily: "inherit",
+                    fontSize: "inherit",
+                    padding: "8px 12px",
+                    border: "1px solid #ddd",
+                    borderRadius: "4px",
+                  }}
+                />
+              </div>
             </div>
             <div className="grid equal-cols">
-              <select
-                value={formData.ids.idType}
-                onChange={(e) =>
-                  handleInputChange("ids", "idType", e.target.value)
-                }
-                required
-                disabled={ocrProcessing}
-              >
-                <option value="">Select ID Type *</option>
-                <option value="aadhaar">Aadhaar</option>
-                <option value="pan">PAN Card</option>
-                <option value="voter">Voter ID</option>
-                <option value="passport">Passport</option>
-              </select>
-              <input
-                type="text"
-                placeholder={`Enter ${formData.ids.idType || "ID"} Number *`}
-                value={formData.ids.idNumber}
-                onChange={(e) =>
-                  handleInputChange("ids", "idNumber", e.target.value)
-                }
-                required
-                disabled={ocrProcessing}
-              />
+              <div className="input-group">
+                <label className="input-label">ID Type *</label>
+                <select
+                  value={formData.ids.idType}
+                  onChange={(e) =>
+                    handleInputChange("ids", "idType", e.target.value)
+                  }
+                  required
+                  disabled={ocrProcessing}
+                >
+                  <option value="">Select ID Type</option>
+                  <option value="aadhaar">Aadhaar</option>
+                  <option value="pan">PAN Card</option>
+                  <option value="voter">Voter ID</option>
+                  <option value="passport">Passport</option>
+                </select>
+              </div>
+              <div className="input-group">
+                <label className="input-label">{formData.ids.idType ? `${formData.ids.idType.toUpperCase()} Number` : 'ID Number'} *</label>
+                <input
+                  type="text"
+                  value={formData.ids.idNumber}
+                  onChange={(e) =>
+                    handleInputChange("ids", "idNumber", e.target.value)
+                  }
+                  required
+                  disabled={ocrProcessing}
+                />
+              </div>
             </div>
           </div>
         );
@@ -1145,91 +1179,155 @@ const CustomerOnboarding = () => {
 
             <h4>Contact Information</h4>
             <div className="grid grid-2">
-              <input
-                type="tel"
-                placeholder="Mobile Number *"
-                value={formData.customer.mobile}
-                onChange={(e) =>
-                  handleInputChange("customer", "mobile", e.target.value)
-                }
-              />
-              <input
-                type="email"
-                placeholder="Email Address *"
-                value={formData.customer.email}
-                onChange={(e) =>
-                  handleInputChange("customer", "email", e.target.value)
-                }
-              />
+              <div className="input-group">
+                <label className="input-label">Mobile Number *</label>
+                <input
+                  type="tel"
+                  value={formData.customer.mobile}
+                  onChange={(e) =>
+                    handleInputChange("customer", "mobile", e.target.value)
+                  }
+                />
+              </div>
+              <div className="input-group">
+                <label className="input-label">Email Address *</label>
+                <input
+                  type="email"
+                  value={formData.customer.email}
+                  onChange={(e) =>
+                    handleInputChange("customer", "email", e.target.value)
+                  }
+                />
+              </div>
+            </div>
+
+            <h4>Personal Details</h4>
+            <div className="grid grid-2">
+              <div className="input-group">
+                <label className="input-label">Occupation</label>
+                <input
+                  type="text"
+                  value={formData.customer.occupation}
+                  onChange={(e) =>
+                    handleInputChange("customer", "occupation", e.target.value)
+                  }
+                />
+              </div>
+              <div className="input-group">
+                <label className="input-label">Income Band</label>
+                <select
+                  value={formData.customer.income_band}
+                  onChange={(e) =>
+                    handleInputChange("customer", "income_band", e.target.value)
+                  }
+                >
+                  <option value="">Select Income Band</option>
+                  <option value="0-2L">0-2L</option>
+                  <option value="2L-5L">2L-5L</option>
+                  <option value="5L-10L">5L-10L</option>
+                  <option value="10L+">10L+</option>
+                  <option value="Not provided">Not provided</option>
+                </select>
+              </div>
+            </div>
+            <div className="grid grid-1">
+              <div className="checkbox-container">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={formData.customer.pep}
+                    onChange={(e) =>
+                      handleInputChange("customer", "pep", e.target.checked)
+                    }
+                  />
+                  <span className="checkbox-label">
+                    I am a Politically Exposed Person (PEP)
+                  </span>
+                </label>
+              </div>
             </div>
 
             <h4>Address Details</h4>
             <div className="grid grid-2">
-              <input
-                type="text"
-                placeholder="City *"
-                value={formData.address.city}
-                onChange={(e) =>
-                  handleInputChange("address", "city", e.target.value)
-                }
-              />
-              <input
-                type="text"
-                placeholder="State *"
-                value={formData.address.state}
-                onChange={(e) =>
-                  handleInputChange("address", "state", e.target.value)
-                }
-              />
-              <input
-                type="text"
-                placeholder="PIN Code *"
-                value={formData.address.pin}
-                onChange={(e) =>
-                  handleInputChange("address", "pin", e.target.value)
-                }
-              />
-              <input
-                type="text"
-                placeholder="Country *"
-                value={formData.address.country}
-                onChange={(e) =>
-                  handleInputChange("address", "country", e.target.value)
-                }
-              />
+              <div className="input-group">
+                <label className="input-label">City *</label>
+                <input
+                  type="text"
+                  value={formData.address.city}
+                  onChange={(e) =>
+                    handleInputChange("address", "city", e.target.value)
+                  }
+                />
+              </div>
+              <div className="input-group">
+                <label className="input-label">State *</label>
+                <input
+                  type="text"
+                  value={formData.address.state}
+                  onChange={(e) =>
+                    handleInputChange("address", "state", e.target.value)
+                  }
+                />
+              </div>
+              <div className="input-group">
+                <label className="input-label">PIN Code *</label>
+                <input
+                  type="text"
+                  value={formData.address.pin}
+                  onChange={(e) =>
+                    handleInputChange("address", "pin", e.target.value)
+                  }
+                />
+              </div>
+              <div className="input-group">
+                <label className="input-label">Country *</label>
+                <input
+                  type="text"
+                  value={formData.address.country}
+                  onChange={(e) =>
+                    handleInputChange("address", "country", e.target.value)
+                  }
+                />
+              </div>
             </div>
 
             <h4>Product Details</h4>
             <div className="grid grid-2">
-              <select
-                value={formData.product.desired_account}
-                onChange={(e) =>
-                  handleInputChange(
-                    "product",
-                    "desired_account",
-                    e.target.value
-                  )
-                }
-              >
-                <option value="">Select Account Type *</option>
-                <option value="savings">Savings</option>
-                <option value="current">Current</option>
-              </select>
-              <select
-                value={formData.product.expected_mab_range}
-                onChange={(e) =>
-                  handleInputChange(
-                    "product",
-                    "expected_mab_range",
-                    e.target.value
-                  )
-                }
-              >
-                <option value="">Expected Monthly Balance *</option>
-                <option value="0-10k">0-10k</option>
-                <option value="10k-25k">10k-25k</option>
-                <option value="25k+">25k+</option>
-              </select>
+              <div className="input-group">
+                <label className="input-label">Account Type *</label>
+                <select
+                  value={formData.product.desired_account}
+                  onChange={(e) =>
+                    handleInputChange(
+                      "product",
+                      "desired_account",
+                      e.target.value
+                    )
+                  }
+                >
+                  <option value="">Select Account Type</option>
+                  <option value="savings">Savings</option>
+                  <option value="current">Current</option>
+                </select>
+              </div>
+              <div className="input-group">
+                <label className="input-label">Expected Monthly Balance *</label>
+                <select
+                  value={formData.product.expected_mab_range}
+                  onChange={(e) =>
+                    handleInputChange(
+                      "product",
+                      "expected_mab_range",
+                      e.target.value
+                    )
+                  }
+                >
+                  <option value="">Select Balance Range</option>
+                  <option value="0-10k">0-10k</option>
+                  <option value="10k-25k">10k-25k</option>
+                  <option value="25k+">25k+</option>
+                </select>
+              </div>
             </div>
           </div>
         );
