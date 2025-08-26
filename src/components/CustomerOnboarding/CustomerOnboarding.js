@@ -372,23 +372,10 @@ const CustomerOnboarding = () => {
           // === ADDRESS EXTRACTION ===
           console.log("--- Searching for Address ---");
 
-          // For Aadhaar cards, look for the complete address pattern
-          // Pattern 1: Look for the full S/O address block
-          const fullAddressMatch = text.match(
-            /S\/O\s+Anoop\s+Kumar\s+Jha[^|]*?\|\s*\|[^|]*?Address:\s*([^|]+?)(?=\s*\d{4}\s+\d{4}\s+\d{4})/s
-          );
-          if (fullAddressMatch) {
-            address = fullAddressMatch[1]
-              .trim()
-              .replace(/\s+/g, " ")
-              .replace(/\n/g, ", ");
-            console.log("Address found via full Aadhaar pattern:", address);
-          }
-
-          // Pattern 2: Look for address after S/O line
+          // Pattern 1: Look for address after S/O (Son/Daughter of) line - Generic approach
           if (!address) {
             const soAddressMatch = text.match(
-              /S\/O\s+[^,\n]+,\s*([^|]+?)(?=\s*\d{4}\s+\d{4}\s+\d{4}|$)/s
+              /S\/O\s+[A-Za-z\s]+[,\s]+([^|]+?)(?=\s*\d{4}\s+\d{4}\s+\d{4}|$)/s
             );
             if (soAddressMatch) {
               address = soAddressMatch[1]
@@ -397,7 +384,7 @@ const CustomerOnboarding = () => {
                 .replace(/\n/g, ", ");
               // Clean unwanted words
               address = address
-                .replace(/\b(Authentication|Verify|Signature)\b/gi, "")
+                .replace(/\b(Authentication|Verify|Signature|Male|Female|DOB|Date of Birth)\b/gi, "")
                 .trim();
               address = address
                 .replace(/\s+/g, " ")
@@ -407,100 +394,94 @@ const CustomerOnboarding = () => {
             }
           }
 
-          // Pattern 3: Look for the specific address structure in your Aadhaar
+          // Pattern 2: Look for address between name and Aadhaar number
           if (!address) {
-            const specificMatch = text.match(
-              /22\/1,\s*VUAY\s+NAGAR[^|]*?Uttar\s+Pradesh\s*-\s*208005/s
+            const addressBetweenMatch = text.match(
+              /(?:Male|Female)\s*([^|]+?)(?=\s*\d{4}\s+\d{4}\s+\d{4})/s
             );
-            if (specificMatch) {
-              address = specificMatch[0]
+            if (addressBetweenMatch) {
+              address = addressBetweenMatch[1]
                 .trim()
                 .replace(/\s+/g, " ")
                 .replace(/\n/g, ", ");
-              console.log("Address found via specific pattern:", address);
-            }
-          }
-
-          // Pattern 4: Extract address components and combine
-          if (!address) {
-            const addressComponents = [];
-
-            // Look for S/O line
-            const soMatch = text.match(/S\/O\s+[A-Za-z\s]+/);
-            if (soMatch) addressComponents.push(soMatch[0]);
-
-            // Look for house number/street
-            const houseMatch = text.match(/22\/1,?\s*VUAY\s+NAGAR/i);
-            if (houseMatch) addressComponents.push(houseMatch[0]);
-
-            // Look for area
-            const areaMatch = text.match(/Hns\s+Nagar\s+S\.O/i);
-            if (areaMatch) addressComponents.push(areaMatch[0]);
-
-            // Look for city
-            const cityMatch = text.match(/Kanpur\s+Nagar/i);
-            if (cityMatch) addressComponents.push(cityMatch[0]);
-
-            // Look for state and PIN
-            const stateMatch = text.match(/Uttar\s+Pradesh\s*-?\s*208005/i);
-            if (stateMatch) addressComponents.push(stateMatch[0]);
-
-            if (addressComponents.length >= 3) {
-              address = addressComponents.join(", ");
               // Clean unwanted words
               address = address
-                .replace(/\b(Authentication|Verify|Signature)\b/gi, "")
+                .replace(/\b(Authentication|Verify|Signature|DOB|Date of Birth)\b/gi, "")
                 .trim();
               address = address
                 .replace(/\s+/g, " ")
                 .replace(/,\s*,/g, ",")
                 .replace(/^,|,$/g, "");
-              console.log("Address found by component extraction:", address);
+              console.log("Address found between gender and Aadhaar:", address);
             }
           }
 
-          // Pattern 5: Look for lines containing address keywords
+          // Pattern 3: Extract address by looking for common address components
           if (!address) {
             const addressLines = [];
             for (let i = 0; i < lines.length; i++) {
               const line = lines[i].trim();
 
-              // Check for S/O line
-              if (/S\/O\s+[A-Za-z\s]+/.test(line)) {
-                addressLines.push(line);
+              // Skip lines that are clearly not address
+              if (
+                /(?:aadhaar|government|india|male|female|dob|date|signature|verify|authentication|enrolment|unique identification)/i.test(line) ||
+                /^\d{4}\s+\d{4}\s+\d{4}$/.test(line) || // Skip Aadhaar number line
+                line.length < 5
+              ) {
                 continue;
               }
 
-              // Check for address components
+              // Look for lines that contain address-like content
               if (
-                line.length > 5 &&
-                /(?:22\/1|VUAY|NAGAR|Hns|Kanpur|Uttar|Pradesh|208005)/i.test(
-                  line
-                ) &&
-                !/(?:aadhaar|government|india|male|female|dob|date|signature|verify|authentication|enrolment)/i.test(
-                  line
-                )
+                /(?:\d+[\/\-,]\s*\w+|road|street|nagar|colony|sector|block|plot|house|flat|apartment|village|town|city|district|state|pin|pincode|\d{6})/i.test(line) ||
+                /(?:near|opp|opposite|behind|front|beside)/i.test(line)
               ) {
-                // Clean up the line by removing unwanted words
+                // Clean up the line
                 let cleanLine = line
-                  .replace(/\b(Authentication|Verify|Signature)\b/gi, "")
+                  .replace(/\b(Authentication|Verify|Signature|Male|Female|DOB|Date of Birth)\b/gi, "")
                   .trim();
-                // Remove extra spaces and commas
                 cleanLine = cleanLine
                   .replace(/\s+/g, " ")
                   .replace(/,\s*,/g, ",")
                   .replace(/^,|,$/g, "");
+                
                 if (cleanLine.length > 3) {
                   addressLines.push(cleanLine);
                 }
               }
 
-              if (addressLines.length >= 4) break; // Take first 4 address-like lines
+              if (addressLines.length >= 3) break; // Take first 3 address-like lines
             }
 
             if (addressLines.length > 0) {
               address = addressLines.join(", ");
-              console.log("Address found by line analysis:", address);
+              console.log("Address found by component analysis:", address);
+            }
+          }
+
+          // Pattern 4: Fallback - Look for any text between name and Aadhaar number
+          if (!address) {
+            // Find the position of the name and Aadhaar number
+            const nameMatch = text.match(/([A-Z][a-z]+\s+[A-Z][a-z]+)/);
+            const aadhaarMatch = text.match(/\d{4}\s+\d{4}\s+\d{4}/);
+            
+            if (nameMatch && aadhaarMatch) {
+              const nameIndex = text.indexOf(nameMatch[0]);
+              const aadhaarIndex = text.indexOf(aadhaarMatch[0]);
+              
+              if (nameIndex < aadhaarIndex) {
+                const textBetween = text.substring(nameIndex + nameMatch[0].length, aadhaarIndex);
+                const cleanedText = textBetween
+                  .replace(/\b(Male|Female|DOB|Date of Birth|S\/O|D\/O|W\/O|Authentication|Verify|Signature)\b/gi, "")
+                  .replace(/\s+/g, " ")
+                  .replace(/[|]+/g, " ")
+                  .trim();
+                
+                if (cleanedText.length > 10) {
+                  address = cleanedText;
+                  console.log("Address found between name and Aadhaar:", address);
+                }
+              }
             }
           }
 
@@ -933,7 +914,7 @@ const CustomerOnboarding = () => {
               <span>
                 <strong>Submitted On:</strong>
               </span>
-              <span>{new Date().toLocaleDateString()}</span>
+              <span>{formData.submissionTimestamp ? new Date(formData.submissionTimestamp).toLocaleDateString() : new Date().toLocaleDateString()}</span>
             </div>
             <div className="summary-item">
               <span>
@@ -1089,8 +1070,8 @@ const CustomerOnboarding = () => {
 
             {/* Document-related fields */}
             <h4>Document Information</h4>
-            <div className="grid grid-2">
-              <div className="input-group">
+            <div className="grid grid-2 document-info-grid" style={{display: 'flex', alignItems: 'flex-end', gap: '1.2rem'}}>
+              <div className="input-group" style={{flex: '1', display: 'flex', flexDirection: 'column'}}>
                 <label className="input-label">Full Name *</label>
                 <input
                   type="text"
@@ -1099,9 +1080,10 @@ const CustomerOnboarding = () => {
                     handleInputChange("customer", "fullName", e.target.value)
                   }
                   disabled={ocrProcessing}
+                  style={{height: '44px', padding: '0.75rem 1rem', boxSizing: 'border-box'}}
                 />
               </div>
-              <div className="input-group">
+              <div className="input-group" style={{flex: '1', display: 'flex', flexDirection: 'column'}}>
                 <label className="input-label">Date of Birth *</label>
                 <input
                   type="date"
@@ -1110,6 +1092,7 @@ const CustomerOnboarding = () => {
                     handleInputChange("customer", "dob", e.target.value)
                   }
                   disabled={ocrProcessing}
+                  style={{height: '44px', padding: '0.75rem 1rem', boxSizing: 'border-box'}}
                 />
               </div>
             </div>
@@ -1135,8 +1118,8 @@ const CustomerOnboarding = () => {
                 />
               </div>
             </div>
-            <div className="grid equal-cols">
-              <div className="input-group">
+            <div className="grid equal-cols" style={{display: 'flex', alignItems: 'flex-end', gap: '1.2rem'}}>
+              <div className="input-group" style={{flex: '1', display: 'flex', flexDirection: 'column'}}>
                 <label className="input-label">ID Type *</label>
                 <select
                   value={formData.ids.idType}
@@ -1145,6 +1128,7 @@ const CustomerOnboarding = () => {
                   }
                   required
                   disabled={ocrProcessing}
+                  style={{height: '44px', padding: '0.75rem 1rem', boxSizing: 'border-box'}}
                 >
                   <option value="">Select ID Type</option>
                   <option value="aadhaar">Aadhaar</option>
@@ -1153,7 +1137,7 @@ const CustomerOnboarding = () => {
                   <option value="passport">Passport</option>
                 </select>
               </div>
-              <div className="input-group">
+              <div className="input-group" style={{flex: '1', display: 'flex', flexDirection: 'column'}}>
                 <label className="input-label">{formData.ids.idType ? `${formData.ids.idType.toUpperCase()} Number` : 'ID Number'} *</label>
                 <input
                   type="text"
@@ -1163,6 +1147,7 @@ const CustomerOnboarding = () => {
                   }
                   required
                   disabled={ocrProcessing}
+                  style={{height: '44px', padding: '0.75rem 1rem', boxSizing: 'border-box'}}
                 />
               </div>
             </div>
@@ -1178,8 +1163,8 @@ const CustomerOnboarding = () => {
             </h3>
 
             <h4>Contact Information</h4>
-            <div className="grid grid-2">
-              <div className="input-group">
+            <div className="grid grid-2" style={{display: 'flex', alignItems: 'flex-end', gap: '1.2rem'}}>
+              <div className="input-group" style={{flex: '1', display: 'flex', flexDirection: 'column'}}>
                 <label className="input-label">Mobile Number *</label>
                 <input
                   type="tel"
@@ -1187,9 +1172,10 @@ const CustomerOnboarding = () => {
                   onChange={(e) =>
                     handleInputChange("customer", "mobile", e.target.value)
                   }
+                  style={{height: '44px', padding: '0.75rem 1rem', boxSizing: 'border-box'}}
                 />
               </div>
-              <div className="input-group">
+              <div className="input-group" style={{flex: '1', display: 'flex', flexDirection: 'column'}}>
                 <label className="input-label">Email Address *</label>
                 <input
                   type="email"
@@ -1197,13 +1183,14 @@ const CustomerOnboarding = () => {
                   onChange={(e) =>
                     handleInputChange("customer", "email", e.target.value)
                   }
+                  style={{height: '44px', padding: '0.75rem 1rem', boxSizing: 'border-box'}}
                 />
               </div>
             </div>
 
             <h4>Personal Details</h4>
-            <div className="grid grid-2">
-              <div className="input-group">
+            <div className="grid grid-2" style={{display: 'flex', alignItems: 'flex-end', gap: '1.2rem'}}>
+              <div className="input-group" style={{flex: '1', display: 'flex', flexDirection: 'column'}}>
                 <label className="input-label">Occupation</label>
                 <input
                   type="text"
@@ -1211,15 +1198,17 @@ const CustomerOnboarding = () => {
                   onChange={(e) =>
                     handleInputChange("customer", "occupation", e.target.value)
                   }
+                  style={{height: '44px', padding: '0.75rem 1rem', boxSizing: 'border-box'}}
                 />
               </div>
-              <div className="input-group">
+              <div className="input-group" style={{flex: '1', display: 'flex', flexDirection: 'column'}}>
                 <label className="input-label">Income Band</label>
                 <select
                   value={formData.customer.income_band}
                   onChange={(e) =>
                     handleInputChange("customer", "income_band", e.target.value)
                   }
+                  style={{height: '44px', padding: '0.75rem 1rem', boxSizing: 'border-box'}}
                 >
                   <option value="">Select Income Band</option>
                   <option value="0-2L">0-2L</option>
@@ -1248,8 +1237,8 @@ const CustomerOnboarding = () => {
             </div>
 
             <h4>Address Details</h4>
-            <div className="grid grid-2">
-              <div className="input-group">
+            <div className="grid grid-2" style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.2rem', alignItems: 'end'}}>
+              <div className="input-group" style={{display: 'flex', flexDirection: 'column'}}>
                 <label className="input-label">City *</label>
                 <input
                   type="text"
@@ -1257,9 +1246,10 @@ const CustomerOnboarding = () => {
                   onChange={(e) =>
                     handleInputChange("address", "city", e.target.value)
                   }
+                  style={{height: '44px', padding: '0.75rem 1rem', boxSizing: 'border-box'}}
                 />
               </div>
-              <div className="input-group">
+              <div className="input-group" style={{display: 'flex', flexDirection: 'column'}}>
                 <label className="input-label">State *</label>
                 <input
                   type="text"
@@ -1267,9 +1257,10 @@ const CustomerOnboarding = () => {
                   onChange={(e) =>
                     handleInputChange("address", "state", e.target.value)
                   }
+                  style={{height: '44px', padding: '0.75rem 1rem', boxSizing: 'border-box'}}
                 />
               </div>
-              <div className="input-group">
+              <div className="input-group" style={{display: 'flex', flexDirection: 'column'}}>
                 <label className="input-label">PIN Code *</label>
                 <input
                   type="text"
@@ -1277,9 +1268,10 @@ const CustomerOnboarding = () => {
                   onChange={(e) =>
                     handleInputChange("address", "pin", e.target.value)
                   }
+                  style={{height: '44px', padding: '0.75rem 1rem', boxSizing: 'border-box'}}
                 />
               </div>
-              <div className="input-group">
+              <div className="input-group" style={{display: 'flex', flexDirection: 'column'}}>
                 <label className="input-label">Country *</label>
                 <input
                   type="text"
@@ -1287,13 +1279,14 @@ const CustomerOnboarding = () => {
                   onChange={(e) =>
                     handleInputChange("address", "country", e.target.value)
                   }
+                  style={{height: '44px', padding: '0.75rem 1rem', boxSizing: 'border-box'}}
                 />
               </div>
             </div>
 
             <h4>Product Details</h4>
-            <div className="grid grid-2">
-              <div className="input-group">
+            <div className="grid grid-2" style={{display: 'flex', alignItems: 'flex-end', gap: '1.2rem'}}>
+              <div className="input-group" style={{flex: '1', display: 'flex', flexDirection: 'column'}}>
                 <label className="input-label">Account Type *</label>
                 <select
                   value={formData.product.desired_account}
@@ -1304,13 +1297,14 @@ const CustomerOnboarding = () => {
                       e.target.value
                     )
                   }
+                  style={{height: '44px', padding: '0.75rem 1rem', boxSizing: 'border-box'}}
                 >
                   <option value="">Select Account Type</option>
                   <option value="savings">Savings</option>
                   <option value="current">Current</option>
                 </select>
               </div>
-              <div className="input-group">
+              <div className="input-group" style={{flex: '1', display: 'flex', flexDirection: 'column'}}>
                 <label className="input-label">Expected Monthly Balance *</label>
                 <select
                   value={formData.product.expected_mab_range}
@@ -1321,11 +1315,12 @@ const CustomerOnboarding = () => {
                       e.target.value
                     )
                   }
+                  style={{height: '44px', padding: '0.75rem 1rem', boxSizing: 'border-box'}}
                 >
                   <option value="">Select Balance Range</option>
-                  <option value="0-10k">0-10k</option>
-                  <option value="10k-25k">10k-25k</option>
-                  <option value="25k+">25k+</option>
+                  <option value="0-1L">0-1L</option>
+                  <option value="1L-5L">1L-5L</option>
+                  <option value="5L+">5L+</option>
                 </select>
               </div>
             </div>
